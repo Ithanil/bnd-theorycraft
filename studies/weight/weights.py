@@ -1,19 +1,66 @@
 from pylab import *
+from scipy.optimize import curve_fit
 
 drain_weights = [250, 300, 350, 400, 500]
 recovery_weights = [0, 50, 100, 125, 150]
 
-def rawToPlotData(raw_data):
+def stamina_recovery(recovery_base, time):
+    if recovery_base>0: # check needed for fitting
+        return recovery_base * time
+    else:
+        return 0.0
+
+def stamina_drain(weight, drain_base_1, drain_base_2, time):
+    if weight<=100:
+        return 0.0
+    elif weight<=200:
+        if drain_base_1>0: # check needed for fitting
+            return drain_base_1 * time
+        else:
+            return 0.0
+    else:
+        if drain_base_2>0: # check needed for fitting
+            return drain_base_2/255 * weight * time
+        else:
+            return 0.0
+
+
+def stamina_drain_array(weights, drain_base_1, drain_base_2, time):
+    result = zeros(len(weights))
+    for it, weight in enumerate(weights):
+        result[it] = stamina_drain(weight, drain_base_1, drain_base_2, time)
+    return result        
+
+def stamina_change(weight, recovery_base, drain_base_1, drain_base_2, time):
+    return stamina_recovery(recovery_base, time) - stamina_drain(weight, drain_base_1, drain_base_2, time)
+
+def stamina_change_array(weights, recovery_base, drain_base_1, drain_base_2, time):
+    stamrec = stamina_recovery(recovery_base, time)
+    stamdrain = stamina_drain_array(weights, drain_base_1, drain_base_2, time)    
+    return stamrec - stamdrain
+
+def stamina_rate(weight, recovery_base, drain_base_1, drain_base_2):
+    return stamina_change(weight, recovery_base, drain_base_1, drain_base_2, 1.0)
+
+def stamina_rate_array(weights, recovery_base, drain_base_1, drain_base_2):
+    return stamina_change_array(weights, recovery_base, drain_base_1, drain_base_2, 1.0)
+
+def stamina_rate_fit(weights, values, ipars): # weight, value arrays + initial model parameters
+    pars, covar = curve_fit(stamina_rate_array, weights, values, p0=ipars)
+    model = stamina_rate_array(weights, pars[0], pars[1], pars[2])
+    return pars, covar, model    
+
+def rawToPlotData(raw_data, stamina_change):
     data_x = []
     data_y = []
     for x, y in raw_data.items():
         try:
             for yi in y:
                 data_x.append(x)
-                data_y.append(yi)
+                data_y.append(stamina_change/yi)
         except:
             data_x.append(x)
-            data_y.append(y)
+            data_y.append(stamina_change/y)
 
     data_x = array(data_x)
     data_y = array(data_y)
@@ -31,29 +78,46 @@ for weight in recovery_weights:
 
 nomove_data = genfromtxt("recovery_data/nomove", comments = '#')
 
-drain_data_x, drain_data_y = rawToPlotData(drain_data_raw)
-recovery_data_x, recovery_data_y = rawToPlotData(recovery_data_raw)
+drain_data_x, drain_data_y = rawToPlotData(drain_data_raw, -255)
+recovery_data_x, recovery_data_y = rawToPlotData(recovery_data_raw, 255)
 
-
-print(drain_data_raw)
-print(recovery_data_raw)
-print(nomove_data)
+comb_data_x = concatenate((recovery_data_x, drain_data_x))
+comb_data_y = concatenate((recovery_data_y, drain_data_y))
 
 avg_nomove_time = mean(nomove_data)
 print('Avg standstill recovery time: ' + str(avg_nomove_time))
 
+init_vals = [5, 4, 10]
+drain_vals, covar_drain, drain_model = stamina_rate_fit(drain_data_x, drain_data_y, init_vals)
+print('drain vals', drain_vals)
+rec_vals, covar_rec, rec_model = stamina_rate_fit(recovery_data_x, recovery_data_y, init_vals)
+print('rec_vals', rec_vals)
+comb_vals, covar_comb, comb_model = stamina_rate_fit(comb_data_x, comb_data_y, init_vals)
+print('comb_vals', comb_vals)
+
+
 figure(1)
 plot(drain_data_x, drain_data_y, 'o')
+plot(drain_data_x, drain_model)
 title('Stamina drain test')
 xlabel('Weight')
-ylabel('Time [s]')
+ylabel('Rate [1/s]')
 savefig('plot_drain.pdf')
 
 figure(2)
 plot(recovery_data_x, recovery_data_y, 'o')
+plot(recovery_data_x, rec_model)
 title('Stamina recovery test (moving)')
 xlabel('Weight')
-ylabel('Time [s]')
+ylabel('rate [1/s]')
 savefig('plot_recovery.pdf')
+
+figure(3)
+plot(comb_data_x, comb_data_y, 'o')
+plot(comb_data_x, comb_model)
+title('Stamina drain+recovery test (moving)')
+xlabel('Weight')
+ylabel('rate [1/s]')
+savefig('plot_combined.pdf')
 
 show()
