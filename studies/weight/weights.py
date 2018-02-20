@@ -45,9 +45,9 @@ def stamina_rate(weight, recovery_base, drain_base_1, drain_base_2):
 def stamina_rate_array(weights, recovery_base, drain_base_1, drain_base_2):
     return stamina_change_array(weights, recovery_base, drain_base_1, drain_base_2, 1.0)
 
-def stamina_rate_fit(weights, values, ipars): # weight, value arrays + initial model parameters
+def stamina_rate_fit(weights, values, model_weights, ipars): # weight, value arrays + input for final model array + initial model parameters
     pars, covar = curve_fit(stamina_rate_array, weights, values, p0=ipars)
-    model = stamina_rate_array(weights, pars[0], pars[1], pars[2])
+    model = stamina_rate_array(model_weights, pars[0], pars[1], pars[2])
     return pars, covar, model    
 
 def rawToPlotData(raw_data, stamina_change):
@@ -86,19 +86,26 @@ comb_data_y = concatenate((recovery_data_y, drain_data_y))
 
 avg_nomove_time = mean(nomove_data)
 print('Avg standstill recovery time: ' + str(avg_nomove_time))
+print('Avg standstill recovery rate: ' + str(255.0/avg_nomove_time))
 
 init_vals = [5, 4, 10]
-drain_vals, covar_drain, drain_model = stamina_rate_fit(drain_data_x, drain_data_y, init_vals)
+
+drain_model_data_x = arange(201, 500, 1)
+drain_vals, covar_drain, drain_model = stamina_rate_fit(drain_data_x, drain_data_y, drain_model_data_x, init_vals)
 print('drain vals', drain_vals)
-rec_vals, covar_rec, rec_model = stamina_rate_fit(recovery_data_x, recovery_data_y, init_vals)
+
+rec_model_data_x = arange(0, 200, 1) 
+rec_vals, covar_rec, rec_model = stamina_rate_fit(recovery_data_x, recovery_data_y, rec_model_data_x, init_vals)
 print('rec_vals', rec_vals)
-comb_vals, covar_comb, comb_model = stamina_rate_fit(comb_data_x, comb_data_y, init_vals)
+
+comb_model_data_x = arange(0, 500, 1)
+comb_vals, covar_comb, comb_model = stamina_rate_fit(comb_data_x, comb_data_y, comb_model_data_x, init_vals)
 print('comb_vals', comb_vals)
 
 
 figure(1)
 plot(drain_data_x, drain_data_y, 'o')
-plot(drain_data_x, drain_model)
+plot(drain_model_data_x, drain_model)
 title('Stamina drain test')
 xlabel('Weight')
 ylabel('Rate [1/s]')
@@ -106,7 +113,7 @@ savefig('plot_drain.pdf')
 
 figure(2)
 plot(recovery_data_x, recovery_data_y, 'o')
-plot(recovery_data_x, rec_model)
+plot(rec_model_data_x, rec_model)
 title('Stamina recovery test (moving)')
 xlabel('Weight')
 ylabel('rate [1/s]')
@@ -114,7 +121,7 @@ savefig('plot_recovery.pdf')
 
 figure(3)
 plot(comb_data_x, comb_data_y, 'o')
-plot(comb_data_x, comb_model)
+plot(comb_model_data_x, comb_model)
 title('Stamina drain+recovery test (moving)')
 xlabel('Weight')
 ylabel('rate [1/s]')
