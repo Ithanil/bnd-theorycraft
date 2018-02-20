@@ -47,11 +47,13 @@ plot(drain_data_x, drain_data_y, 'o')
 title('Stamina drain test')
 xlabel('Weight')
 ylabel('Time [s]')
+savefig('plot_drain.pdf')
 
 figure(2)
 plot(recovery_data_x, recovery_data_y, 'o')
 title('Stamina recovery test (moving)')
 xlabel('Weight')
 ylabel('Time [s]')
+savefig('plot_recovery.pdf')
 
 show()
