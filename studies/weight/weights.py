@@ -88,7 +88,7 @@ avg_nomove_time = mean(nomove_data)
 print('Avg standstill recovery time: ' + str(avg_nomove_time))
 print('Avg standstill recovery rate: ' + str(255.0/avg_nomove_time))
 
-init_vals = [5, 4, 10]
+init_vals = [3, 4, 8]
 
 drain_model_data_x = arange(201, 500, 1)
 drain_vals, covar_drain, drain_model = stamina_rate_fit(drain_data_x, drain_data_y, drain_model_data_x, init_vals)
@@ -102,6 +102,7 @@ comb_model_data_x = arange(0, 500, 1)
 comb_vals, covar_comb, comb_model = stamina_rate_fit(comb_data_x, comb_data_y, comb_model_data_x, init_vals)
 print('comb_vals', comb_vals)
 
+manual_model = stamina_rate_array(comb_model_data_x, 4, 3, 8)
 
 figure(1)
 plot(drain_data_x, drain_data_y, 'o')
@@ -116,7 +117,7 @@ plot(recovery_data_x, recovery_data_y, 'o')
 plot(rec_model_data_x, rec_model)
 title('Stamina recovery test (moving)')
 xlabel('Weight')
-ylabel('rate [1/s]')
+ylabel('Rate [1/s]')
 savefig('plot_recovery.pdf')
 
 figure(3)
@@ -124,7 +125,14 @@ plot(comb_data_x, comb_data_y, 'o')
 plot(comb_model_data_x, comb_model)
 title('Stamina drain+recovery test (moving)')
 xlabel('Weight')
-ylabel('rate [1/s]')
+ylabel('Rate [1/s]')
 savefig('plot_combined.pdf')
 
+figure(4)
+plot(comb_data_x, comb_data_y, 'o')
+plot(comb_model_data_x, manual_model)
+title('Stamina drain+recovery test (moving) \n Manually set model parameters')
+xlabel('Weight')
+ylabel('Rate [1/s]')
+savefig('plot_manual.pdf')
 show()
